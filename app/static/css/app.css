@@ -360,16 +360,37 @@ button, input, select, textarea {
   flex: 1;
   max-width: 360px;
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .admin-search__input {
   width: 100%;
-  padding: 8px 16px 8px 40px;
+  padding: 8px 38px 8px 16px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   background: var(--bg-main);
   font-size: 13px;
   transition: all 0.2s;
+}
+
+.admin-search__submit-btn {
+  position: absolute;
+  left: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: color 0.2s;
+}
+
+.admin-search__submit-btn:hover {
+  color: var(--primary);
 }
 
 .admin-search__input:focus {
@@ -444,7 +465,7 @@ button, input, select, textarea {
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 20px;
   margin-bottom: 24px;
 }
@@ -499,6 +520,11 @@ button, input, select, textarea {
 .kpi-card__icon--danger {
   background: #fef2f2;
   color: #ef4444;
+}
+
+.kpi-card__icon--gray {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .kpi-card__body {

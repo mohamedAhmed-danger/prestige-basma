@@ -90,8 +90,27 @@
     });
   }
 
+  function initAdminLiveSearch() {
+    var searchInput = document.getElementById("global-admin-search") || document.querySelector(".admin-search__input");
+    if (!searchInput) return;
+
+    searchInput.addEventListener("input", function () {
+      var query = this.value.toLowerCase().trim();
+      var rows = document.querySelectorAll("table.table tbody tr");
+      rows.forEach(function (row) {
+        var text = row.textContent.toLowerCase();
+        if (query === "" || text.indexOf(query) !== -1) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     initFlashDismiss();
     initAdminMobileNav();
+    initAdminLiveSearch();
   });
 })();
