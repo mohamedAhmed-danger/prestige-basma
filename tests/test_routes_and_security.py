@@ -103,3 +103,17 @@ def test_employee_full_flow_page_renders(client, app):
     # WebAuthn register page
     res_webauthn = client.get('/employee/webauthn/register')
     assert res_webauthn.status_code == 200
+
+
+def test_reports_export_excel_and_csv(client, app):
+    admin = User.query.filter_by(role='admin').first()
+    with client.session_transaction() as sess:
+        sess['_user_id'] = str(admin.id)
+
+    res_excel = client.get('/admin/reports?export=excel')
+    assert res_excel.status_code == 200
+    assert 'spreadsheetml' in res_excel.content_type
+
+    res_csv = client.get('/admin/reports?export=csv')
+    assert res_csv.status_code == 200
+    assert 'csv' in res_csv.content_type

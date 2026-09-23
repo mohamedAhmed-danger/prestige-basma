@@ -12,7 +12,7 @@ from app.services.admin_stats_service import (
     get_weekly_trend,
     format_arabic_date,
 )
-from app.services.report_service import get_report, export_csv
+from app.services.report_service import get_report, export_csv, export_excel
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -78,7 +78,9 @@ def reports():
 
     rows = get_report(date_from, date_to, zone_id=zone_id, status=status, employee_id=employee_id)
 
-    if request.args.get('export') == 'csv':
+    if request.args.get('export') in ('excel', 'xlsx'):
+        return export_excel(rows)
+    elif request.args.get('export') == 'csv':
         return export_csv(rows)
 
     zones_list = Zone.query.order_by(Zone.id).all()
