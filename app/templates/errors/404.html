@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}الصفحة مش موجودة — GeoAttend Pro{% endblock %}
+
+{% block content %}
+<section class="error-screen">
+  <p class="error-screen__code">404</p>
+  <h1 class="error-screen__title">الصفحة مش موجودة</h1>
+  <p class="error-screen__text">
+    الرابط اللي فتحته مش موجود، أو اتنقل لمكان تاني.
+  </p>
+  <a class="btn btn--primary" href="{{ url_for('main.home') }}">الرجوع للصفحة الرئيسية</a>
+</section>
+{% endblock %}

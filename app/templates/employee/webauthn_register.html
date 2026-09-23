@@ -1,0 +1,118 @@
+{% extends "employee/_base.html" %}
+
+{% block title %}تسجيل بصمة الجهاز — GeoAttend Pro{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:12px;">
+  <a class="btn btn--secondary" style="padding:6px 14px; font-size:13px;" href="{{ url_for('employee.profile') }}">← الرجوع لحسابي</a>
+</div>
+
+<div class="page-header" style="margin-bottom:16px;">
+  <h1 class="page-header__title">🔒 بصمة الجهاز (Face ID / Touch ID)</h1>
+</div>
+
+<div style="display:flex; flex-direction:column; gap:16px;">
+
+  <!-- Info Card -->
+  <div class="emp-card" style="background:var(--info-bg); border-right:4px solid var(--primary);">
+    <div class="emp-card__title" style="color:var(--primary);">💡 كيف تعمل بصمة الجهاز؟</div>
+    <p style="font-size:13px; color:var(--text-main); line-height:1.6;">
+      تسجيل بصمة جهازك (<strong>Face ID / Touch ID / بصمة الأندرويد / Windows Hello</strong>) يضيف طبقة أمان حيوي عند الحضور والانصراف، للتحقق السريع من هويتك جنب الموقع الجغرافي.
+    </p>
+  </div>
+
+  <!-- Registered Devices List -->
+  {% if credentials %}
+  <div class="emp-card">
+    <div class="emp-card__title">
+      <span>📱 الأجهزة المسجلة</span>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+      {% for cred in credentials %}
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--bg-main); border-radius:var(--radius-md);">
+        <div>
+          <div style="font-weight:700; font-size:14px; color:var(--text-main);">
+            📱 {{ cred.nickname or 'جهاز موثق' }}
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+            آخر استخدام: {{ cred.last_used_at | cairo_time('%Y-%m-%d %I:%M %p') if cred.last_used_at else 'لم يستخدم بعد' }}
+          </div>
+        </div>
+        <form method="POST" action="{{ url_for('employee.webauthn_credential_delete', credential_id=cred.id) }}" onsubmit="return confirm('تأكيد حذف هذا الجهاز؟');">
+          <button type="submit" class="btn btn--secondary" style="padding:4px 10px; font-size:12px; color:var(--danger);" title="حذف الجهاز">حذف</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="emp-card" style="border-color:#fde68a; background:var(--warn-bg);">
+    <div class="emp-card__title" style="color:var(--warn-dark);">⚠️ لم يتم تسجيل جهاز بعد</div>
+    <p style="font-size:13px; color:var(--text-main);">
+      يلزم تسجيل جهازك الحالي (الهاتف أو الكمبيوتر) لتفعيل إمكانية تسجيل الحضور والانصراف.
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- Register New Device Card -->
+  <div class="emp-card">
+    <div class="emp-card__title">➕ تسجيل جهاز جديد</div>
+
+    <div class="field" style="margin-bottom:16px;">
+      <label class="field__label" for="nickname">اسم الجهاز (اختياري)</label>
+      <input class="field__input" type="text" id="nickname" name="nickname_display" placeholder="مثال: تليفوني الشخصي">
+    </div>
+
+    <form id="register-form" method="POST" action="{{ url_for('employee.webauthn_register_submit') }}">
+      <input type="hidden" id="nickname-hidden" name="nickname">
+      <input type="hidden" id="credential" name="credential">
+      <button type="button" id="register-btn" class="btn btn--primary btn--xl btn--block" onclick="startWebAuthnRegistration()">
+        🔒 تسجيل بصمة الجهاز الآن
+      </button>
+      <p id="register-status" class="field__label" style="text-align:center; margin-top:10px;"></p>
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/@simplewebauthn/browser@13.3.0/dist/bundle/index.umd.min.js"></script>
+<script>
+var WEBAUTHN_REGISTRATION_OPTIONS = {{ webauthn_reg_options | safe }};
+
+function startWebAuthnRegistration() {
+  var status = document.getElementById('register-status');
+  var button = document.getElementById('register-btn');
+
+  if (typeof SimpleWebAuthnBrowser === 'undefined' || !window.PublicKeyCredential) {
+    status.textContent = 'المتصفح لا يدعم الرمز الحيوي (يلزم HTTPS أو localhost)';
+    status.style.color = 'var(--danger-dark)';
+    return;
+  }
+
+  // Ensure options.rp.id is a domain name (WebAuthn spec forbids IP addresses like 127.0.0.1)
+  if (WEBAUTHN_REGISTRATION_OPTIONS && WEBAUTHN_REGISTRATION_OPTIONS.rp) {
+    var host = window.location.hostname;
+    WEBAUTHN_REGISTRATION_OPTIONS.rp.id = (host === '127.0.0.1') ? 'localhost' : host;
+  }
+
+  button.disabled = true;
+  status.textContent = 'برجاء تأكيد البصمة أو Face ID عند ظهور نافذة المتصفح...';
+  status.style.color = 'var(--primary)';
+
+  SimpleWebAuthnBrowser.startRegistration({ optionsJSON: WEBAUTHN_REGISTRATION_OPTIONS })
+    .then(function (registrationResponse) {
+      document.getElementById('credential').value = JSON.stringify(registrationResponse);
+      document.getElementById('nickname-hidden').value = document.getElementById('nickname').value;
+      document.getElementById('register-form').submit();
+    })
+    .catch(function (error) {
+      var msg = (error && (error.message || error.name)) ? (error.name + ': ' + error.message) : 'تم إلغاء التسجيل';
+      status.textContent = 'تعذر التسجيل (' + msg + ')';
+      status.style.color = 'var(--danger-dark)';
+      button.disabled = false;
+    });
+}
+</script>
+{% endblock %}

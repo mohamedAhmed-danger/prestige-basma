@@ -1,0 +1,66 @@
+{% extends "employee/_base.html" %}
+
+{% block title %}سجل الحضور — GeoAttend Pro{% endblock %}
+
+{% block content %}
+
+<div class="page-header" style="margin-bottom:16px;">
+  <h1 class="page-header__title">سجل الحضور</h1>
+</div>
+
+{% if records %}
+  <div style="display:flex; flex-direction:column; gap:14px;">
+    {% for row in records %}
+    <div class="history-card">
+      <div class="history-card__header">
+        <div class="history-card__date">
+          📅 {{ row.date.strftime('%d') }} {{ {'01':'يناير','02':'فبراير','03':'مارس','04':'أبريل','05':'مايو','06':'يونيو','07':'يوليو','08':'أغسطس','09':'سبتمبر','10':'أكتوبر','11':'نوفمبر','12':'ديسمبر'}[row.date.strftime('%m')] }} {{ row.date.strftime('%Y') }}
+        </div>
+        <div>
+          {% if row.status == 'active' %}
+            <span class="badge badge--info"><span class="badge__dot"></span>Active</span>
+          {% elif row.shift_status == 'full_shift' %}
+            <span class="badge badge--ok"><span class="badge__dot"></span>Full Shift</span>
+          {% elif row.shift_status == 'short_shift' %}
+            <span class="badge badge--warn"><span class="badge__dot"></span>Short Shift</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="history-card__body">
+        <div class="history-card__times">
+          ⏰ {{ row.sign_in_time | cairo_time }} ← {{ row.sign_out_time | cairo_time if row.sign_out_time else '—' }}
+        </div>
+        <div style="font-weight:700; color:var(--text-main);">
+          {% if row.total_hours is not none %}
+            {% set h = row.total_hours|int %}
+            {% set m = ((row.total_hours - h) * 60)|round|int %}
+            {{ h }}h {{ m }}m
+          {% else %}
+            —
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:4px; font-size:12px;">
+        <div style="color:var(--text-muted);">
+          📍 {{ row.zone.name if row.zone else 'المقر الرئيسي' }}
+        </div>
+        <div>
+          {% if row.is_late %}
+            <span class="badge badge--danger">🟠 Late • {{ row.late_minutes }} min</span>
+          {% else %}
+            <span class="badge badge--ok"> On Time</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="emp-card" style="text-align:center; padding:40px 20px;">
+    <p style="color:var(--text-muted); font-size:14px;">لا يوجد سجل حضور مسجل بعد.</p>
+  </div>
+{% endif %}
+
+{% endblock %}

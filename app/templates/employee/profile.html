@@ -1,0 +1,69 @@
+{% extends "employee/_base.html" %}
+
+{% block title %}حسابي — GeoAttend Pro{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom:16px;">
+  <h1 class="page-header__title">حسابي</h1>
+</div>
+
+<div style="display:flex; flex-direction:column; gap:16px;">
+
+  <!-- User Profile Card -->
+  <div class="emp-card" style="text-align:center; padding:24px 20px;">
+    <div class="emp-avatar" style="width:64px; height:64px; font-size:26px; margin:0 auto 12px auto;">
+      {{ current_user.name[:1] }}
+    </div>
+    <h2 style="font-size:18px; font-weight:700;">{{ current_user.name }}</h2>
+    <div style="font-size:13px; color:var(--text-muted); margin-top:2px;">موظف مقيد بالنظام</div>
+  </div>
+
+  <!-- Assignment Details Card -->
+  <div class="emp-card">
+    <div class="emp-card__title">
+      <span>👤 تفاصيل الحساب والعمل</span>
+    </div>
+    <div class="schedule-row">
+      <span class="schedule-row__label">الاسم الكامل</span>
+      <span class="schedule-row__value">{{ current_user.name }}</span>
+    </div>
+    <div class="schedule-row">
+      <span class="schedule-row__label">الفرع / المقر المخصص</span>
+      <span class="schedule-row__value">{{ current_user.zone.name if current_user.zone else 'غير مخصص' }}</span>
+    </div>
+    <div class="schedule-row">
+      <span class="schedule-row__label">الشفت المخصص</span>
+      <span class="schedule-row__value">{{ current_user.shift_setting.name if current_user.shift_setting else 'غير مخصص' }}</span>
+    </div>
+    <div class="schedule-row">
+      <span class="schedule-row__label">تاريخ التسجيل</span>
+      <span class="schedule-row__value" style="font-family:var(--font-mono); font-size:13px;">{{ current_user.created_at.strftime('%Y-%m-%d') if current_user.created_at else '—' }}</span>
+    </div>
+  </div>
+
+  <!-- WebAuthn Device Card -->
+  <div class="emp-card">
+    <div class="emp-card__title">
+      <span>🔒 بصمة الجهاز الحيوي</span>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+      <div>
+        {% if current_user.webauthn_credentials %}
+          <span class="badge badge--ok">🟢 تم تسجيل جهاز (Face ID / Fingerprint)</span>
+        {% else %}
+          <span class="badge badge--muted">⚪ لم يتم تسجيل جهاز بعد</span>
+        {% endif %}
+      </div>
+      <a class="btn btn--secondary" style="font-size:12px; padding:6px 12px;" href="{{ url_for('employee.webauthn_register') }}">إدارة الأجهزة</a>
+    </div>
+  </div>
+
+  <!-- Logout Button -->
+  <div style="margin-top:12px;">
+    <a class="btn btn--secondary btn--block" style="color:var(--danger); border-color:#fecaca; background:var(--danger-bg);" href="{{ url_for('auth.logout') }}">
+      تسجيل الخروج
+    </a>
+  </div>
+
+</div>
+{% endblock %}

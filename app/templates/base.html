@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}برستيج بصمة{% endblock %}</title>
+
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+  <div class="app-shell">
+
+    <header class="app-header">
+      <div class="app-header__inner">
+        <a class="app-brand" href="{{ url_for('main.home') }}" style="display:flex; align-items:center; gap:10px;">
+          <img src="{{ url_for('static', filename='images/logo.png') }}" alt="برستيج بصمة" style="height:38px; border-radius:8px;">
+          <span class="app-brand__text" style="font-size:18px; font-weight:700; color:var(--text-main);">
+            برستيج بصمة
+          </span>
+        </a>
+
+        <nav class="app-nav" aria-label="التنقل الرئيسي">
+          {% block nav_items %}{% endblock %}
+        </nav>
+      </div>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack" role="status">
+          {% for category, message in messages %}
+            <div class="flash flash--{{ category }}">
+              <span class="flash__text">{{ message }}</span>
+              <button type="button" class="flash__dismiss" aria-label="إغلاق الرسالة">×</button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <main class="app-main">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="app-footer" style="text-align:center; padding:20px; font-size:13px; color:var(--text-muted); border-top:1px solid var(--border-color); background:var(--surface);">
+      <span>2026 © تطوير <a href="http://revyai.tech/" target="_blank" style="color:#2563eb; font-weight:700; text-decoration:underline;">RevyAI (01554019172)</a></span>
+    </footer>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

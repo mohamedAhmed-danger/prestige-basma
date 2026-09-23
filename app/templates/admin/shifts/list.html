@@ -1,0 +1,160 @@
+{% extends "admin/_base.html" %}
+{% set active_nav = 'shifts' %}
+
+{% block title %}إعدادات الشفت — GeoAttend Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">إعدادات الشفت</h1>
+    <div class="page-header__sub">تحديد أوقات العمل وقواعد احتساب الشفت والحضور المتأخر</div>
+  </div>
+  <a class="btn btn--primary" href="{{ url_for('admin.shifts_create') }}">+ إضافة شفت جديد</a>
+</div>
+
+<div class="dash-grid">
+  <!-- Left Side: Active Shift Configurations Form / List -->
+  <div class="panel">
+    <div class="panel__header">
+      <h2 class="panel__title">إعدادات الشفت الحالية</h2>
+    </div>
+
+    {% if shifts %}
+      {% set active_shift = shifts[0] %}
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="field">
+          <label class="field__label">اختر الشفت</label>
+          <select class="field__input" style="width:100%;" onchange="window.location.href=this.value">
+            {% for shift in shifts %}
+              <option value="{{ url_for('admin.shifts_edit', shift_id=shift.id) }}" {% if loop.first %}selected{% endif %}>
+                {{ shift.name }} (من {{ shift.shift_start_time.strftime('%H:%M') }} إلى {{ shift.sign_in_end_time.strftime('%H:%M') }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="schedule-row">
+          <span class="schedule-row__label">اسم الشفت</span>
+          <span class="schedule-row__value">{{ active_shift.name }}</span>
+        </div>
+        <div class="schedule-row">
+          <span class="schedule-row__label">بداية الشفت (التوقيت المتوقع)</span>
+          <span class="schedule-row__value">{{ active_shift.shift_start_time.strftime('%H:%M') }} AM</span>
+        </div>
+        <div class="schedule-row">
+          <span class="schedule-row__label">نهاية نافذة تسجيل الحضور</span>
+          <span class="schedule-row__value">{{ active_shift.sign_in_end_time.strftime('%H:%M') }} AM</span>
+        </div>
+        <div class="schedule-row">
+          <span class="schedule-row__label">فترة السماح للتأخير</span>
+          <span class="schedule-row__value">{{ active_shift.grace_period_minutes }} دقيقة</span>
+        </div>
+        <div class="schedule-row">
+          <span class="schedule-row__label">الحد الأدنى لساعات الشفت الكامل</span>
+          <span class="schedule-row__value">{{ active_shift.min_full_shift_hours }} ساعات</span>
+        </div>
+
+        <div style="margin-top: 12px; display:flex; gap:10px;">
+          <a class="btn btn--primary btn--block" href="{{ url_for('admin.shifts_edit', shift_id=active_shift.id) }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            تعديل إعدادات الشفت
+          </a>
+        </div>
+      </div>
+    {% else %}
+      <div class="table-empty">لا توجد شفتات مضافة بعد. اضغط على "+ إضافة شفت جديد".</div>
+    {% endif %}
+
+    <!-- List of All Shifts Summary Table -->
+    <div style="margin-top:24px; border-top:1px solid var(--border-color); padding-top:20px;">
+      <h3 style="font-size:15px; font-weight:700; margin-bottom:12px;">جميع الشفتات المتاحة</h3>
+      {% if shifts %}
+      <table class="table" style="font-size:13px;">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>البداية</th>
+            <th>النهاية</th>
+            <th>السماح</th>
+            <th>عمليات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for shift in shifts %}
+          <tr>
+            <td style="font-weight:600;">{{ shift.name }}</td>
+            <td>{{ shift.shift_start_time.strftime('%H:%M') }}</td>
+            <td>{{ shift.sign_in_end_time.strftime('%H:%M') }}</td>
+            <td>{{ shift.grace_period_minutes }}د</td>
+            <td>
+              <a class="btn btn--secondary" style="padding:2px 8px; font-size:11px;" href="{{ url_for('admin.shifts_edit', shift_id=shift.id) }}">تعديل</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Side: Visual Timeline Preview & Rules Callout -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+    {% set s = shifts[0] if shifts else None %}
+    <div class="panel">
+      <div class="panel__header">
+        <h2 class="panel__title">⏱️ معاينة قواعد الشفت</h2>
+      </div>
+
+      <div class="shift-rules-timeline">
+        <!-- On Time Timeline Item -->
+        <div class="timeline-item timeline-item--ok">
+          <div class="timeline-item__info">
+            <span class="timeline-item__title">الحضور في الوقت المحدد</span>
+            <span class="timeline-item__range">من {{ s.shift_start_time.strftime('%H:%M') if s else '08:00' }} إلى {{ (s.shift_start_time.hour * 60 + s.shift_start_time.minute + (s.grace_period_minutes if s else 15)) // 60 }}:{% set rem = (s.shift_start_time.minute + (s.grace_period_minutes if s else 15)) % 60 %}{{ '0' if rem < 10 }}{{ rem }} AM</span>
+          </div>
+          <span class="badge badge--ok">On Time</span>
+        </div>
+
+        <!-- Late Timeline Item -->
+        <div class="timeline-item timeline-item--warn">
+          <div class="timeline-item__info">
+            <span class="timeline-item__title">تأخير مسموح</span>
+            <span class="timeline-item__range">من {{ (s.shift_start_time.hour * 60 + s.shift_start_time.minute + (s.grace_period_minutes if s else 15) + 1) // 60 }}:{% set rem2 = (s.shift_start_time.minute + (s.grace_period_minutes if s else 15) + 1) % 60 %}{{ '0' if rem2 < 10 }}{{ rem2 }} إلى {{ s.sign_in_end_time.strftime('%H:%M') if s else '10:00' }} AM</span>
+          </div>
+          <span class="badge badge--warn">Late</span>
+        </div>
+
+        <!-- Rejected Timeline Item -->
+        <div class="timeline-item timeline-item--danger">
+          <div class="timeline-item__info">
+            <span class="timeline-item__title">مرفوض (لا يمكن تسجيل الحضور)</span>
+            <span class="timeline-item__range">أكثر من {{ s.sign_in_end_time.strftime('%H:%M') if s else '10:00' }} AM</span>
+          </div>
+          <span class="badge badge--danger">Rejected</span>
+        </div>
+      </div>
+
+      <!-- Notes Box -->
+      <div style="margin-top:20px; background:var(--info-bg); border-right:4px solid var(--info); padding:16px; border-radius:var(--radius-md);">
+        <h4 style="font-size:14px; font-weight:700; color:var(--primary); margin-bottom:8px;">💡 ملاحظات مهمة</h4>
+        <ul style="font-size:13px; color:var(--text-main); padding-right:16px; display:flex; flex-direction:column; gap:6px;">
+          <li>الحد الأدنى لساعات الشفت الكامل يحدد حالة اليوم (Full / Short).</li>
+          <li>التأخير لا يؤثر على إمكانية تسجيل الحضور (ضمن نافذة الحضور).</li>
+          <li>يتم حساب التأخير بناءً على وقت بداية الشفت المحدد + فترة السماح.</li>
+          <li>يمكن تعديل هذه الإعدادات في أي وقت من قبل الأدمن.</li>
+        </ul>
+      </div>
+
+      <!-- Live Example Box -->
+      <div style="margin-top:16px; background:#faf5ff; border-right:4px solid #a855f7; padding:16px; border-radius:var(--radius-md);">
+        <h4 style="font-size:14px; font-weight:700; color:#7e22ce; margin-bottom:6px;">✨ مثال تطبيقي</h4>
+        <p style="font-size:13px; color:var(--text-main);">
+          إذا حضر الموظف في <strong>08:37 AM</strong>:<br>
+          • التأخير: <strong>37 دقيقة</strong>.<br>
+          • ويزال مسموح له بالتسجيل (ضمن نافذة الحضور حتى {{ s.sign_in_end_time.strftime('%H:%M') if s else '10:00' }} AM).
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

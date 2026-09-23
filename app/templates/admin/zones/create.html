@@ -1,0 +1,87 @@
+{% extends "admin/_base.html" %}
+{% set active_nav = 'zones' %}
+
+{% block title %}إضافة فرع — GeoAttend Pro{% endblock %}
+
+{% block content %}
+<a class="page-header__back" href="{{ url_for('admin.zones') }}">‹ الرجوع للفروع</a>
+
+<div class="page-header">
+  <h1 class="page-header__title">إضافة فرع جديد</h1>
+</div>
+
+<div class="auth-card" style="max-width: 480px; margin: 0;">
+  <form method="POST" action="{{ url_for('admin.zones_create') }}">
+    <div class="field">
+      <label class="field__label" for="name">اسم الفرع</label>
+      <input class="field__input" type="text" id="name" name="name" required autofocus>
+    </div>
+
+    <div class="field">
+      <button type="button" id="locate-btn" class="btn btn--secondary btn--block" onclick="fillFromLocation()">
+استخدم موقعي الحالي
+      </button>
+      <p id="locate-status" class="field__hint"></p>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field__label" for="latitude">خط العرض (Latitude)</label>
+        <input class="field__input" type="text" id="latitude" name="latitude" placeholder="31.2001" required>
+      </div>
+      <div class="field">
+        <label class="field__label" for="longitude">خط الطول (Longitude)</label>
+        <input class="field__input" type="text" id="longitude" name="longitude" placeholder="29.9187" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="radius_meters">نطاق المقر (متر)</label>
+      <input class="field__input" type="number" id="radius_meters" name="radius_meters" min="1" value="50" required>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn--primary">حفظ الفرع</button>
+      <a class="btn btn--secondary" href="{{ url_for('admin.zones') }}">إلغاء</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fillFromLocation() {
+  var status = document.getElementById('locate-status');
+  var button = document.getElementById('locate-btn');
+
+  if (!navigator.geolocation) {
+    status.textContent = 'المتصفح ده مش بيدعم تحديد الموقع';
+    status.className = 'field__hint field__hint--danger';
+    return;
+  }
+
+  button.disabled = true;
+  button.classList.add('is-loading');
+  status.textContent = 'بنحدد موقعك...';
+  status.className = 'field__hint';
+
+  navigator.geolocation.getCurrentPosition(
+    function (position) {
+      document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
+      document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+      status.textContent = 'تم تحديد الموقع (دقة ' + Math.round(position.coords.accuracy) + ' متر تقريبًا)';
+      status.className = 'field__hint field__hint--ok';
+      button.disabled = false;
+      button.classList.remove('is-loading');
+    },
+    function (error) {
+      status.textContent = 'مقدرناش نحدد موقعك، تأكد إنك سامح للمتصفح بالوصول للموقع';
+      status.className = 'field__hint field__hint--danger';
+      button.disabled = false;
+      button.classList.remove('is-loading');
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+</script>
+{% endblock %}

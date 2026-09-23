@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose*.yml
+
+# Python virtual environments
+myenv/
+venv/
+.venv/
+env/
+
+# Python bytecode & cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local data & environment
+.env
+instance/
+*.db
+*.sqlite3
+
+# IDE / OS specific files
+.vscode/
+.idea/
+.DS_Store

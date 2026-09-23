@@ -1,0 +1,58 @@
+{% extends "admin/_base.html" %}
+{% set active_nav = 'employees' %}
+
+{% block title %}إضافة موظف جديد — GeoAttend Pro{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:16px;">
+  <a class="btn btn--secondary" style="padding:6px 14px; font-size:13px;" href="{{ url_for('admin.employees') }}">← الرجوع لقائمة الموظفين</a>
+</div>
+
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">إضافة موظف جديد</h1>
+    <div class="page-header__sub">إدخال بيانات حساب الموظف وتعيين الفرع والشفت المخصص</div>
+  </div>
+</div>
+
+<div class="panel" style="max-width:600px;">
+  <form method="POST" action="{{ url_for('admin.employees_create') }}" style="display:flex; flex-direction:column; gap:20px;">
+    
+    <div class="field">
+      <label class="field__label" for="name">اسم الموظف / اسم المستخدم</label>
+      <input class="field__input" style="width:100%;" type="text" id="name" name="name" placeholder="مثال: أحمد محمد" required autofocus>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="password">كلمة المرور الحساب</label>
+      <input class="field__input" style="width:100%;" type="password" id="password" name="password" placeholder="أدخل كلمة المرور" required>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="zone_id">المقر / الفرع المخصص</label>
+      <select class="field__input" style="width:100%;" id="zone_id" name="zone_id" required>
+        <option value="">اختر الفرع...</option>
+        {% for zone in zones %}
+          <option value="{{ zone.id }}">{{ zone.name }} (نطاق {{ zone.radius_meters }}m)</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="shift_setting_id">الشفت المخصص</label>
+      <select class="field__input" style="width:100%;" id="shift_setting_id" name="shift_setting_id" required>
+        <option value="">اختر الشفت...</option>
+        {% for shift in shifts %}
+          <option value="{{ shift.id }}">{{ shift.name }} (من {{ shift.shift_start_time.strftime('%H:%M') }} إلى {{ shift.sign_in_end_time.strftime('%H:%M') }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-top:10px;">
+      <button type="submit" class="btn btn--primary">حفظ وإضافة الموظف</button>
+      <a class="btn btn--secondary" href="{{ url_for('admin.employees') }}">إلغاء</a>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

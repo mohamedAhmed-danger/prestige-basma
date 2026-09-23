@@ -1,0 +1,80 @@
+{% extends "admin/_base.html" %}
+{% set active_nav = 'employees' %}
+
+{% block title %}إدارة الموظفين — GeoAttend Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">إدارة الموظفين</h1>
+    <div class="page-header__sub">عرض وإضافة وتعديل بيانات الموظفين وإدارة الأجهزة المسجلة</div>
+  </div>
+  <div class="page-header__actions">
+    <a class="btn btn--primary" href="{{ url_for('admin.employees_create') }}">+ إضافة موظف جديد</a>
+  </div>
+</div>
+
+<div class="panel" style="padding:0;">
+  <div class="table-card" style="border:none; box-shadow:none;">
+    {% if employees %}
+    <table class="table admin-table--mobile-cards">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>اسم الموظف</th>
+          <th>الفرع المخصص</th>
+          <th>الشفت المخصص</th>
+          <th>الأجهزة المسجلة (WebAuthn)</th>
+          <th>تاريخ الإنشاء</th>
+          <th>الحالة</th>
+          <th>العمليات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for emp in employees %}
+        <tr>
+          <td data-label="#">{{ emp.id }}</td>
+          <td data-label="الاسم" style="font-weight:600;">{{ emp.name }}</td>
+          <td data-label="الفرع">{{ emp.zone.name if emp.zone else 'غير مخصص' }}</td>
+          <td data-label="الشفت">{{ emp.shift_setting.name if emp.shift_setting else 'غير مخصص' }}</td>
+          <td data-label="الأجهزة">
+            {% set dev_count = emp.webauthn_credentials|length %}
+            {% if dev_count > 0 %}
+              <span class="badge badge--ok">📱 {{ dev_count }} جهاز مسجل</span>
+            {% else %}
+              <span class="badge badge--muted">لا يوجد جهاز</span>
+            {% endif %}
+          </td>
+          <td data-label="تاريخ الإنشاء" style="font-family:var(--font-mono); font-size:13px;">{{ emp.created_at.strftime('%Y-%m-%d') if emp.created_at else '—' }}</td>
+          <td data-label="الحالة">
+            {% if emp.is_active %}
+              <span class="badge badge--ok">نشط</span>
+            {% else %}
+              <span class="badge badge--danger">موقف</span>
+            {% endif %}
+          </td>
+          <td data-label="العمليات">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <a class="btn btn--secondary" style="padding:4px 10px; font-size:12px;" href="{{ url_for('admin.employees_edit', user_id=emp.id) }}">تعديل</a>
+              
+              {% if dev_count > 0 %}
+                <form method="POST" action="{{ url_for('admin.employees_reset_devices', user_id=emp.id) }}" onsubmit="return confirm('تأكيد إعادة ضبط وحذف الأجهزة المسجلة للموظف ({{ emp.name }})؟');">
+                  <button type="submit" class="btn btn--secondary" style="padding:4px 10px; font-size:12px; color:var(--warn-dark);" title="إعادة ضبط البصمة">إعادة ضبط البصمة</button>
+                </form>
+              {% endif %}
+
+              <form method="POST" action="{{ url_for('admin.employees_delete', user_id=emp.id) }}" onsubmit="return confirm('تأكيد حذف الموظف ({{ emp.name }}) نهائياً؟');">
+                <button type="submit" class="btn btn--secondary" style="padding:4px 10px; font-size:12px; color:var(--danger);" title="حذف">حذف</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="table-empty">لا يوجد موظفين مقيدين للنظام حالياً. اضغط على "+ إضافة موظف جديد".</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

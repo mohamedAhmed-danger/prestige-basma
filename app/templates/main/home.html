@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}GeoAttend Pro — الأساس{% endblock %}
+
+{% block content %}
+<section class="foundation">
+
+  <div class="foundation__intro">
+    <p class="foundation__eyebrow">Batch 1</p>
+    <h1 class="foundation__title">الأساس شغال.</h1>
+    <p class="foundation__lead">
+      دي نقطة الانطلاق: Flask وقاعدة البيانات والقوالب شغالين مع بعض.
+      من هنا هيتبني فوقها المستخدمين والفروع والحضور خطوة خطوة.
+    </p>
+  </div>
+
+  <div class="check-panel">
+    <h2 class="check-panel__title">حالة الأساس</h2>
+    <ul class="check-list">
+      {% for label, ok in checks|default([
+        ('Flask يعمل', true),
+        ('قاعدة البيانات SQLite متصلة', true),
+        ('SQLAlchemy مهيأة', true),
+        ('Flask-Migrate جاهزة', true),
+        ('Blueprints مسجلة', true),
+      ]) %}
+        <li class="check-item {{ 'check-item--ok' if ok else 'check-item--pending' }}">
+          <span class="check-item__dot" aria-hidden="true"></span>
+          <span class="check-item__label">{{ label }}</span>
+          <span class="check-item__status">{{ 'شغال' if ok else 'قيد الإعداد' }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <p class="foundation__note">
+    لسه من غير مستخدمين ولا فروع ولا تسجيل حضور — ده كله جاي في الـ Batches الجاية.
+  </p>
+
+</section>
+{% endblock %}

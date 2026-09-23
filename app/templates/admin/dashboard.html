@@ -1,0 +1,327 @@
+{% extends "admin/_base.html" %}
+{% set active_nav = 'dashboard' %}
+
+{% block title %}لوحة التحكم الرئيسية — GeoAttend Pro{% endblock %}
+
+{% block topbar %}
+  <button type="button" class="admin-nav-toggle" onclick="toggleAdminSidebar(true)" aria-label="فتح القائمة">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+  </button>
+
+  <div class="admin-topbar__date">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    {{ today_display }}
+  </div>
+
+  <form class="admin-search" method="get" action="{{ url_for('admin.dashboard') }}">
+    <input type="hidden" name="date" value="{{ target_date.isoformat() }}">
+    {% if filters.zone_id %}<input type="hidden" name="zone_id" value="{{ filters.zone_id }}">{% endif %}
+    {% if filters.status %}<input type="hidden" name="status" value="{{ filters.status }}">{% endif %}
+    <input class="admin-search__input" type="text" name="q" value="{{ filters.q }}" placeholder="ابحث عن موظف...">
+  </form>
+
+  <div class="admin-topbar__icons">
+    <span class="admin-topbar__icon-btn" title="الإشعارات">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+    </span>
+    <div class="admin-sidebar__avatar" style="background:#eff6ff;color:#2563eb;width:38px;height:38px;font-size:15px;">
+      {{ current_user.name[:1] }}
+    </div>
+  </div>
+{% endblock %}
+
+{% block content %}
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">لوحة التحكم الرئيسية</h1>
+      <div class="page-header__sub">نظرة عامة على أداء الحضور اليومي للموظفين المقيدين بالنظام</div>
+    </div>
+  </div>
+
+  <!-- KPI Cards Grid -->
+  <section class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="kpi-card__body">
+        <div class="kpi-card__label">إجمالي الموظفين</div>
+        <div class="kpi-card__value">{{ kpis.total_employees }}</div>
+        <div class="kpi-card__sub"><span class="kpi-card__pct--up">+2%</span> مقارنة بالأسبوع الماضي</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--ok">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div class="kpi-card__body">
+        <div class="kpi-card__label">الحاضرون الآن</div>
+        <div class="kpi-card__value">{{ kpis.present_count }}</div>
+        <div class="kpi-card__sub">{{ (kpis.present_count / kpis.total_employees * 100)|round|int if kpis.total_employees else 0 }}% من الإجمالي</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--warn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="kpi-card__body">
+        <div class="kpi-card__label">شفت كامل</div>
+        <div class="kpi-card__value">{{ kpis.full_shift_count }}</div>
+        <div class="kpi-card__sub">{{ (kpis.full_shift_count / kpis.present_count * 100)|round|int if kpis.present_count else 0 }}% من الحاضرين</div>
+      </div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kpi-card__icon kpi-card__icon--danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="kpi-card__body">
+        <div class="kpi-card__label">شفت غير كامل</div>
+        <div class="kpi-card__value">{{ kpis.short_shift_count }}</div>
+        <div class="kpi-card__sub">{{ (kpis.short_shift_count / kpis.present_count * 100)|round|int if kpis.present_count else 0 }}% من الحاضرين</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Charts Row -->
+  <section class="dash-grid">
+    <!-- Donut Chart -->
+    <div class="panel">
+      <div class="panel__header">
+        <h2 class="panel__title">توزيع حالات الشفت اليوم</h2>
+      </div>
+      <div class="donut-wrap">
+        <div class="donut-canvas-box">
+          <canvas id="attendanceDonut" width="160" height="160"></canvas>
+          <div class="donut-canvas-box__total">
+            <div class="donut-canvas-box__total-value">{{ kpis.present_count }}</div>
+            <div class="donut-canvas-box__total-label">إجمالي الحضور</div>
+          </div>
+        </div>
+        <div class="donut-legend">
+          <div class="donut-legend__row">
+            <span class="donut-legend__dot" style="background:#10b981"></span>
+            <span class="donut-legend__name">شفت كامل</span>
+            <span class="donut-legend__value">{{ kpis.full_shift_count }}</span>
+            <span class="donut-legend__pct">({{ (kpis.full_shift_count / kpis.total_employees * 100)|round|int if kpis.total_employees else 0 }}%)</span>
+          </div>
+          <div class="donut-legend__row">
+            <span class="donut-legend__dot" style="background:#f59e0b"></span>
+            <span class="donut-legend__name">شفت غير كامل</span>
+            <span class="donut-legend__value">{{ kpis.short_shift_count }}</span>
+            <span class="donut-legend__pct">({{ (kpis.short_shift_count / kpis.total_employees * 100)|round|int if kpis.total_employees else 0 }}%)</span>
+          </div>
+          {% if kpis.in_progress_count %}
+          <div class="donut-legend__row">
+            <span class="donut-legend__dot" style="background:#3b82f6"></span>
+            <span class="donut-legend__name">قيد التسجيل</span>
+            <span class="donut-legend__value">{{ kpis.in_progress_count }}</span>
+            <span class="donut-legend__pct">({{ (kpis.in_progress_count / kpis.total_employees * 100)|round|int if kpis.total_employees else 0 }}%)</span>
+          </div>
+          {% endif %}
+          <div class="donut-legend__row">
+            <span class="donut-legend__dot" style="background:#cbd5e1"></span>
+            <span class="donut-legend__name">غائب</span>
+            <span class="donut-legend__value">{{ kpis.absent_count }}</span>
+            <span class="donut-legend__pct">({{ (kpis.absent_count / kpis.total_employees * 100)|round|int if kpis.total_employees else 0 }}%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly Attendance Chart -->
+    <div class="panel">
+      <div class="panel__header">
+        <h2 class="panel__title">أداء الحضور خلال الأسبوع</h2>
+      </div>
+      <div style="height: 180px; position: relative;">
+        <canvas id="weeklyBarChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Today's Attendance Table -->
+  <section class="panel" style="padding:0;">
+    <div class="panel__header" style="padding: 24px 24px 0 24px;">
+      <h2 class="panel__title">حضور اليوم</h2>
+      <a class="btn btn--secondary" style="padding: 6px 14px; font-size: 13px;" href="{{ url_for('admin.reports') }}">عرض الكل ›</a>
+    </div>
+
+    <form class="filter-bar" method="get" action="{{ url_for('admin.dashboard') }}" style="margin: 16px 24px;">
+      {% if filters.q %}<input type="hidden" name="q" value="{{ filters.q }}">{% endif %}
+
+      <div class="field">
+        <label class="field__label">التاريخ</label>
+        <input class="field__input" type="date" name="date" value="{{ target_date.isoformat() }}">
+      </div>
+
+      <div class="field">
+        <label class="field__label">الفرع</label>
+        <select class="field__input" name="zone_id">
+          <option value="">كل الفروع</option>
+          {% for zone in zones %}
+            <option value="{{ zone.id }}" {% if filters.zone_id == zone.id %}selected{% endif %}>{{ zone.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label">حالة الشفت</label>
+        <select class="field__input" name="status">
+          <option value="">الكل</option>
+          <option value="full_shift" {% if filters.status == 'full_shift' %}selected{% endif %}>شفت كامل</option>
+          <option value="short_shift" {% if filters.status == 'short_shift' %}selected{% endif %}>شفت غير كامل</option>
+          <option value="active" {% if filters.status == 'active' %}selected{% endif %}>حاضر الآن</option>
+        </select>
+      </div>
+
+      <button class="btn btn--secondary" type="submit">تصفية</button>
+      {% if filters.zone_id or filters.status or filters.q %}
+        <a class="btn btn--secondary" href="{{ url_for('admin.dashboard') }}">إعادة تعيين</a>
+      {% endif %}
+    </form>
+
+    <div class="table-card" style="border:none; box-shadow:none;">
+      {% if report_rows %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>اسم الموظف</th>
+            <th>المقر</th>
+            <th>وقت الحضور</th>
+            <th>وقت الانصراف</th>
+            <th>إجمالي الساعات</th>
+            <th>التأخير</th>
+            <th>الحالة</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in report_rows %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td style="font-weight: 600;">{{ row.user.name }}</td>
+            <td>{{ row.zone.name }}</td>
+            <td>{{ row.sign_in_time|cairo_time }}</td>
+            <td>{{ row.sign_out_time|cairo_time if row.sign_out_time else '—' }}</td>
+            <td>
+              {% if row.total_hours is not none %}
+                {% set h = row.total_hours|int %}
+                {% set m = ((row.total_hours - h) * 60)|round|int %}
+                {{ h }}h {{ m }}m
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              {% if row.is_late %}
+                <span class="badge badge--danger">{{ row.late_minutes }}m</span>
+              {% else %}
+                <span class="badge badge--ok">0m</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.status == 'active' %}
+                <span class="badge badge--info"><span class="badge__dot"></span>Active</span>
+              {% elif row.shift_status == 'full_shift' %}
+                <span class="badge badge--ok"><span class="badge__dot"></span>Full Shift</span>
+              {% elif row.shift_status == 'short_shift' %}
+                <span class="badge badge--warn"><span class="badge__dot"></span>Short Shift</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="table-empty">لا توجد سجلات حضور مطابقة لهذا اليوم/الفلاتر.</div>
+      {% endif %}
+    </div>
+  </section>
+
+{% endblock %}
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    (function () {
+      // Donut Chart
+      var donutCtx = document.getElementById('attendanceDonut');
+      if (donutCtx && typeof Chart !== 'undefined') {
+        var donutData = [
+          {{ kpis.full_shift_count }},
+          {{ kpis.short_shift_count }}
+          {% if kpis.in_progress_count %}, {{ kpis.in_progress_count }}{% endif %},
+          {{ kpis.absent_count }}
+        ];
+        var donutColors = [
+          '#10b981',
+          '#f59e0b'
+          {% if kpis.in_progress_count %}, '#3b82f6'{% endif %},
+          '#cbd5e1'
+        ];
+
+        new Chart(donutCtx, {
+          type: 'doughnut',
+          data: {
+            datasets: [{
+              data: donutData,
+              backgroundColor: donutColors,
+              borderWidth: 0,
+            }],
+          },
+          options: {
+            cutout: '75%',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: true } },
+          },
+        });
+      }
+
+      // Weekly Bar Chart
+      var barCtx = document.getElementById('weeklyBarChart');
+      if (barCtx && typeof Chart !== 'undefined') {
+        var weeklyData = {{ weekly_trend | tojson | safe if weekly_trend else '[]' }};
+        var labels = weeklyData.map(function(item) { return item.day_name; });
+        var fullShiftData = weeklyData.map(function(item) { return item.full_shift; });
+        var shortShiftData = weeklyData.map(function(item) { return item.short_shift; });
+
+        new Chart(barCtx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'شفت كامل',
+                data: fullShiftData,
+                backgroundColor: '#10b981',
+                borderRadius: 4,
+              },
+              {
+                label: 'شفت غير كامل',
+                data: shortShiftData,
+                backgroundColor: '#f59e0b',
+                borderRadius: 4,
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { stacked: true, grid: { display: false } },
+              y: { stacked: true, grid: { color: '#e2e8f0' }, ticks: { precision: 0 } }
+            },
+            plugins: {
+              legend: { position: 'top', align: 'end', labels: { boxWidth: 12, usePointStyle: true } }
+            }
+          }
+        });
+      }
+    })();
+  </script>
+{% endblock %}

@@ -1,0 +1,178 @@
+{% extends "admin/_base.html" %}
+{% set active_nav = 'zones' %}
+
+{% block title %}إدارة المقرات — GeoAttend Pro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  #zone-map {
+    width: 100%;
+    height: 220px;
+    border-radius: var(--radius-md);
+    z-index: 1;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">إدارة المقرات (Zones)</h1>
+    <div class="page-header__sub">إضافة وتعديل فروع الشركة ومواقعها الجغرافية</div>
+  </div>
+  <a class="btn btn--primary" href="{{ url_for('admin.zones_create') }}">+ إضافة مقر جديد</a>
+</div>
+
+<div class="zones-grid">
+  <!-- Zones List Table (Left Side) -->
+  <div class="panel" style="padding:0;">
+    <div class="panel__header" style="padding:20px 24px 0 24px;">
+      <h2 class="panel__title">قائمة المقرات</h2>
+    </div>
+    <div class="table-card" style="border:none; box-shadow:none; margin-top:12px;">
+      {% if zones %}
+      <table class="table" id="zones-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>اسم الفرع</th>
+            <th>الإحداثيات (Lat, Lng)</th>
+            <th>نطاق المسموح</th>
+            <th>الحالة</th>
+            <th>العمليات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for zone in zones %}
+          <tr class="zone-row {% if loop.first %}is-selected{% endif %}"
+              style="cursor:pointer;"
+              onclick="selectZone('{{ zone.name }}', {{ zone.latitude }}, {{ zone.longitude }}, {{ zone.radius_meters }}, {{ 'true' if zone.is_active else 'false' }}, '{{ url_for('admin.zones_edit', zone_id=zone.id) }}', this)">
+            <td>{{ zone.id }}</td>
+            <td style="font-weight: 600;">{{ zone.name }}</td>
+            <td style="font-family: var(--font-mono); font-size:12px;">{{ '%.4f'|format(zone.latitude) }}, {{ '%.4f'|format(zone.longitude) }}</td>
+            <td>{{ zone.radius_meters }} متر</td>
+            <td>
+              {% if zone.is_active %}
+                <span class="badge badge--ok"><span class="badge__dot"></span>نشط</span>
+              {% else %}
+                <span class="badge badge--danger"><span class="badge__dot"></span>غير نشط</span>
+              {% endif %}
+            </td>
+            <td>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <a class="btn btn--secondary" style="padding:4px 10px; font-size:12px;" href="{{ url_for('admin.zones_edit', zone_id=zone.id) }}">تعديل</a>
+                <form method="POST" action="{{ url_for('admin.zones_delete', zone_id=zone.id) }}" onsubmit="return confirm('تأكيد حذف الفرع؟');">
+                  <button type="submit" class="btn btn--secondary" style="padding:4px 10px; font-size:12px; color:var(--danger);" title="حذف">حذف</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="table-empty">لا توجد فروع مضافة حالياً. اضغط على "+ إضافة مقر جديد" للبدء.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Selected Zone Details & Map (Right Side) -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+    <!-- Map Card -->
+    <div class="panel">
+      <div class="panel__header">
+        <h2 class="panel__title">موقع الفرع الحالي</h2>
+      </div>
+      <div id="zone-map"></div>
+    </div>
+
+    <!-- Details Card -->
+    <div class="panel">
+      <div class="panel__header">
+        <h2 class="panel__title">تفاصيل المقر</h2>
+      </div>
+      {% if zones %}
+        {% set first_zone = zones[0] %}
+        <div class="schedule-row">
+          <span class="schedule-row__label">الاسم</span>
+          <span class="schedule-row__value" id="detail-name">{{ first_zone.name }}</span>
+        </div>
+        <div class="schedule-row">
+          <span class="schedule-row__label">الإحداثيات</span>
+          <span class="schedule-row__value" id="detail-coords" style="font-family:var(--font-mono); font-size:13px;">{{ '%.4f'|format(first_zone.latitude) }}, {{ '%.4f'|format(first_zone.longitude) }}</span>
+        </div>
+        <div class="schedule-row">
+          <span class="schedule-row__label">نطاق المسموح</span>
+          <span class="schedule-row__value" id="detail-radius">{{ first_zone.radius_meters }} متر</span>
+        </div>
+        <div class="schedule-row">
+          <span class="schedule-row__label">الحالة</span>
+          <span class="schedule-row__value" id="detail-status">
+            {% if first_zone.is_active %}
+              <span class="badge badge--ok">نشط</span>
+            {% else %}
+              <span class="badge badge--danger">غير نشط</span>
+            {% endif %}
+          </span>
+        </div>
+        <div style="margin-top:16px;">
+          <a class="btn btn--secondary btn--block" id="detail-edit-btn" href="{{ url_for('admin.zones_edit', zone_id=first_zone.id) }}">تعديل البيانات</a>
+        </div>
+      {% else %}
+        <div class="table-empty">حدد فرعاً لعرض تفاصيله</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  var map, marker, circle;
+
+  function initMap(lat, lng, radius, name) {
+    var mapEl = document.getElementById('zone-map');
+    if (!mapEl || typeof L === 'undefined') return;
+
+    map = L.map('zone-map').setView([lat, lng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    marker = L.marker([lat, lng]).addTo(map).bindPopup(name).openPopup();
+    circle = L.circle([lat, lng], {
+      color: '#2563eb',
+      fillColor: '#3b82f6',
+      fillOpacity: 0.2,
+      radius: radius
+    }).addTo(map);
+  }
+
+  function selectZone(name, lat, lng, radius, isActive, editUrl, trEl) {
+    document.querySelectorAll('.zone-row').forEach(function(r) { r.style.background = ''; });
+    if (trEl) trEl.style.background = 'var(--surface-hover)';
+
+    document.getElementById('detail-name').textContent = name;
+    document.getElementById('detail-coords').textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+    document.getElementById('detail-radius').textContent = radius + ' متر';
+    document.getElementById('detail-status').innerHTML = isActive ? '<span class="badge badge--ok">نشط</span>' : '<span class="badge badge--danger">غير نشط</span>';
+    document.getElementById('detail-edit-btn').href = editUrl;
+
+    if (map) {
+      map.setView([lat, lng], 15);
+      marker.setLatLng([lat, lng]).setPopupContent(name).openPopup();
+      circle.setLatLng([lat, lng]).setRadius(radius);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    {% if zones %}
+      initMap({{ zones[0].latitude }}, {{ zones[0].longitude }}, {{ zones[0].radius_meters }}, '{{ zones[0].name }}');
+    {% endif %}
+  });
+</script>
+{% endblock %}

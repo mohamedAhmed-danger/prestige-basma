@@ -1,0 +1,95 @@
+{% extends "admin/_base.html" %}
+{% set active_nav = 'settings' %}
+
+{% block title %}إعدادات النظام — GeoAttend Pro{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">إعدادات النظام</h1>
+    <div class="page-header__sub">إدارة خيارات النظام العامة، قيود الموقع الجغرافي، وإحصائيات المنظومة</div>
+  </div>
+</div>
+
+<div class="dash-grid">
+  <!-- System Settings Form -->
+  <div class="panel">
+    <div class="panel__header">
+      <h2 class="panel__title">⚙️ الخيارات العامة للنظام</h2>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin.settings') }}" style="display:flex; flex-direction:column; gap:20px;">
+      
+      <div class="field">
+        <label class="field__label">اسم المنظومة / التطبيق</label>
+        <input class="field__input" style="width:100%;" type="text" name="app_name" value="برستيج بصمة" required>
+      </div>
+
+      <div class="field">
+        <label class="field__label">توقيت النظام المعتمد</label>
+        <input class="field__input" style="width:100%;" type="text" value="توقيت القاهرة (Africa/Cairo — UTC+2/UTC+3)" disabled>
+        <span class="field__label" style="font-weight:400; color:var(--text-muted);">تعتمد المنظومة ساعة السيرفر الرسمية لتحديد زمن الحضور والانصراف بدقة.</span>
+      </div>
+
+      <div class="field">
+        <label class="field__label">دقة الموقع الجغرافي (GPS Mode)</label>
+        <select class="field__input" style="width:100%;" name="gps_mode">
+          <option value="high_accuracy" selected>دقة عالية جداً (High Accuracy — GPS + Cell Towers)</option>
+          <option value="balanced">دقة متوازنة (Balanced)</option>
+        </select>
+      </div>
+
+      <div class="field" style="flex-direction:row; align-items:center; gap:10px;">
+        <input type="checkbox" id="require_webauthn" name="require_webauthn" value="1" checked>
+        <label class="field__label" for="require_webauthn" style="cursor:pointer;">فرض البصمة الحيوية (WebAuthn / Passkeys) كعامل أمان ثالث على جميع تسجيلات الحضور</label>
+      </div>
+
+      <div style="margin-top:10px;">
+        <button type="submit" class="btn btn--primary">حفظ إعدادات النظام</button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- System Information & Stats Panel -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+    <div class="panel">
+      <div class="panel__header">
+        <h2 class="panel__title">📊 إحصائيات وقواعد البيانات</h2>
+      </div>
+
+      <div class="schedule-row">
+        <span class="schedule-row__label">عدد الموظفين المسجلين</span>
+        <span class="schedule-row__value" style="font-weight:700;">{{ stats.total_employees }} موظف</span>
+      </div>
+      <div class="schedule-row">
+        <span class="schedule-row__label">عدد المقرات (Zones)</span>
+        <span class="schedule-row__value" style="font-weight:700;">{{ stats.total_zones }} فرع</span>
+      </div>
+      <div class="schedule-row">
+        <span class="schedule-row__label">عدد الشفتات المتاحة</span>
+        <span class="schedule-row__value" style="font-weight:700;">{{ stats.total_shifts }} شفت</span>
+      </div>
+      <div class="schedule-row">
+        <span class="schedule-row__label">إجمالي تسجيلات الحضور</span>
+        <span class="schedule-row__value" style="font-weight:700;">{{ stats.total_attendance }} سجل</span>
+      </div>
+      <div class="schedule-row">
+        <span class="schedule-row__label">الأجهزة المسجلة (Passkeys)</span>
+        <span class="schedule-row__value" style="font-weight:700; color:var(--primary);">📱 {{ stats.registered_devices }} جهاز</span>
+      </div>
+    </div>
+
+    <!-- Security & Status Box -->
+    <div class="panel" style="background:var(--ok-bg); border-right:4px solid var(--ok);">
+      <h3 style="font-size:15px; font-weight:700; color:var(--ok-dark); margin-bottom:8px;">🔒 حالة الأمان وحماية البيانات</h3>
+      <p style="font-size:13px; color:var(--text-main); line-height:1.6;">
+        المنظومة محمية بالكامل بطبقات الأمان الثلاثية:<br>
+        1. 🗝️ اسم المستخدم وكلمة المرور المشفرة (Werkzeug Security).<br>
+        2. 📍 نطاق Geofencing الجغرافي المحدد لكل فرع.<br>
+        3. 📱 البصمة الحيوية WebAuthn Passkeys المسجلة على عتاد الجهاز.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

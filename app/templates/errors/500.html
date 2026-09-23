@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}في مشكلة — GeoAttend Pro{% endblock %}
+
+{% block content %}
+<section class="error-screen">
+  <p class="error-screen__code">500</p>
+  <h1 class="error-screen__title">حصلت مشكلة في السيرفر</h1>
+  <p class="error-screen__text">
+    الخطأ اتسجل عندنا، جرب تاني كمان شوية. لو المشكلة استمرت كلم الأدمن.
+  </p>
+  <a class="btn btn--primary" href="{{ url_for('main.home') }}">الرجوع للصفحة الرئيسية</a>
+</section>
+{% endblock %}

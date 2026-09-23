@@ -1,0 +1,168 @@
+{% extends "admin/_base.html" %}
+{% set active_nav = 'reports' %}
+
+{% block title %}التقارير — GeoAttend Pro{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">التقارير اليومية</h1>
+    <div class="page-header__sub">عرض وتصدير تقارير الحضور والانصراف بالتفصيل</div>
+  </div>
+</div>
+
+<section class="panel">
+  <!-- Filter Controls -->
+  <form class="filter-bar" method="get" action="{{ url_for('admin.reports') }}">
+    <div class="field">
+      <label class="field__label">من تاريخ</label>
+      <input class="field__input" type="date" name="date_from" value="{{ date_from.isoformat() }}">
+    </div>
+
+    <div class="field">
+      <label class="field__label">إلى تاريخ</label>
+      <input class="field__input" type="date" name="date_to" value="{{ date_to.isoformat() }}">
+    </div>
+
+    <div class="field">
+      <label class="field__label">المقر / الفرع</label>
+      <select class="field__input" name="zone_id">
+        <option value="">جميع المقرات</option>
+        {% for zone in zones %}
+          <option value="{{ zone.id }}" {% if filters.zone_id == zone.id %}selected{% endif %}>{{ zone.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="field__label">حالة الشفت</label>
+      <select class="field__input" name="status">
+        <option value="">جميع الحالات</option>
+        <option value="full_shift" {% if filters.status == 'full_shift' %}selected{% endif %}>شفت كامل</option>
+        <option value="short_shift" {% if filters.status == 'short_shift' %}selected{% endif %}>شفت غير كامل</option>
+        <option value="active" {% if filters.status == 'active' %}selected{% endif %}>حاضر الآن (قيد التسجيل)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="field__label">الموظف</label>
+      <select class="field__input" name="employee_id">
+        <option value="">جميع الموظفين</option>
+        {% for emp in employees %}
+          <option value="{{ emp.id }}" {% if filters.employee_id == emp.id %}selected{% endif %}>{{ emp.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="display:flex; gap:8px; align-items:flex-end;">
+      <button class="btn btn--primary" type="submit">تطبيق الفلاتر</button>
+      <button class="btn btn--secondary" type="submit" name="export" value="csv" style="background:#10b981; color:#fff; border:none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        تصدير Excel / CSV
+      </button>
+      {% if filters.zone_id or filters.status or filters.employee_id %}
+        <a class="btn btn--secondary" href="{{ url_for('admin.reports') }}">إعادة تعيين</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- Summary Cards Row -->
+  {% set total_r = rows|length %}
+  {% set full_r = rows | selectattr('shift_status', 'equalto', 'full_shift') | list | length %}
+  {% set short_r = rows | selectattr('shift_status', 'equalto', 'short_shift') | list | length %}
+  {% set late_r = rows | selectattr('is_late', 'equalto', true) | list | length %}
+  <div class="report-summary-grid">
+    <div class="report-summary-card">
+      <div class="report-summary-card__label">إجمالي التقرير</div>
+      <div class="report-summary-card__value">{{ total_r }}</div>
+    </div>
+    <div class="report-summary-card report-summary-card--ok">
+      <div class="report-summary-card__label">شفت كامل</div>
+      <div class="report-summary-card__value">{{ full_r }}</div>
+    </div>
+    <div class="report-summary-card report-summary-card--warn">
+      <div class="report-summary-card__label">شفت غير كامل</div>
+      <div class="report-summary-card__value">{{ short_r }}</div>
+    </div>
+    <div class="report-summary-card report-summary-card--danger">
+      <div class="report-summary-card__label">المتأخرون</div>
+      <div class="report-summary-card__value">{{ late_r }}</div>
+    </div>
+  </div>
+
+  <!-- Attendance Table -->
+  <div class="panel__header">
+    <h3 class="panel__title">تفاصيل الحضور اليومي</h3>
+  </div>
+  <div class="table-card" style="border:none; box-shadow:none;">
+    {% if rows %}
+    <table class="table admin-table--mobile-cards">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>التاريخ</th>
+          <th>اسم الموظف</th>
+          <th>الفرع</th>
+          <th>وقت الحضور</th>
+          <th>وقت الانصراف</th>
+          <th>التأخير (دقيقة)</th>
+          <th>إجمالي الساعات</th>
+          <th>الحالة</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td data-label="#">{{ loop.index }}</td>
+          <td data-label="التاريخ" style="font-family:var(--font-mono); font-size:13px;">{{ row.date.strftime('%Y-%m-%d') }}</td>
+          <td data-label="الموظف" style="font-weight:600;">{{ row.user.name }}</td>
+          <td data-label="الفرع">{{ row.zone.name }}</td>
+          <td data-label="الحضور">{{ row.sign_in_time|cairo_time }}</td>
+          <td data-label="الانصراف">{{ row.sign_out_time|cairo_time if row.sign_out_time else '—' }}</td>
+          <td data-label="التأخير">
+            {% if row.is_late %}
+              <span class="badge badge--danger">{{ row.late_minutes }}m</span>
+            {% else %}
+              <span class="badge badge--ok">0m</span>
+            {% endif %}
+          </td>
+          <td data-label="إجمالي">
+            {% if row.total_hours is not none %}
+              {% set h = row.total_hours|int %}
+              {% set m = ((row.total_hours - h) * 60)|round|int %}
+              {{ h }}h {{ m }}m
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td data-label="الحالة">
+            {% if row.status == 'active' %}
+              <span class="badge badge--info"><span class="badge__dot"></span>Active</span>
+            {% elif row.shift_status == 'full_shift' %}
+              {% if row.is_late %}
+                <span class="badge badge--ok"><span class="badge__dot"></span>Full Shift</span>
+                <span class="badge badge--danger" style="margin-right:4px;">Late</span>
+              {% else %}
+                <span class="badge badge--ok"><span class="badge__dot"></span>Full Shift</span>
+              {% endif %}
+            {% elif row.shift_status == 'short_shift' %}
+              {% if row.is_late %}
+                <span class="badge badge--warn"><span class="badge__dot"></span>Short Shift</span>
+                <span class="badge badge--danger" style="margin-right:4px;">Late</span>
+              {% else %}
+                <span class="badge badge--warn"><span class="badge__dot"></span>Short Shift</span>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="table-empty">لا توجد تسجيلات حضور مطابقة لهذا البحث.</div>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}
