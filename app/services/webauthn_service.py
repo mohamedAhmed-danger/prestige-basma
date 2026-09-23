@@ -50,26 +50,36 @@ import os
 
 
 def _rp_config():
-    rp_id = current_app.config.get('WEBAUTHN_RP_ID') or os.getenv('WEBAUTHN_RP_ID')
+    env_rp_id = current_app.config.get('WEBAUTHN_RP_ID') or os.getenv('WEBAUTHN_RP_ID')
+    env_origin = current_app.config.get('WEBAUTHN_ORIGIN') or os.getenv('WEBAUTHN_ORIGIN')
     rp_name = current_app.config.get('WEBAUTHN_RP_NAME', 'برستيج بصمة')
-    origin = current_app.config.get('WEBAUTHN_ORIGIN') or os.getenv('WEBAUTHN_ORIGIN')
 
-    if not rp_id or not origin:
-        if request:
-            # قراءة اسم الهوست الأصلي الممرر من Nginx
-            host_header = request.headers.get('X-Forwarded-Host', request.host)
-            req_host = host_header.split(':')[0]
-            
-            # قراءة البروتوكول الأصلي (http أم https)
-            scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
-            
-            if not rp_id:
-                rp_id = 'localhost' if req_host in ('127.0.0.1', 'localhost') else req_host
-            if not origin:
+    rp_id = env_rp_id
+    origin = env_origin
+
+    if request:
+        # Read real host and protocol forwarded by Nginx or reverse proxy
+        host_header = request.headers.get('X-Forwarded-Host', request.host)
+        req_host = host_header.split(':')[0]
+        scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+
+        # Handle local dev vs production domain fallback dynamically
+        if not rp_id or rp_id in ('localhost', '127.0.0.1'):
+            if req_host not in ('127.0.0.1', 'localhost'):
+                rp_id = req_host
+            else:
+                rp_id = 'localhost'
+
+        if not origin or 'localhost' in origin or '127.0.0.1' in origin:
+            if req_host not in ('127.0.0.1', 'localhost'):
                 origin = f"{scheme}://{host_header}"
-        else:
-            rp_id = rp_id or 'prestige-basma.revyai.tech'
-            origin = origin or 'https://prestige-basma.revyai.tech'
+            else:
+                origin = origin or f"{scheme}://{host_header}"
+
+    if not rp_id:
+        rp_id = 'prestige-basma.revyai.tech'
+    if not origin:
+        origin = 'https://prestige-basma.revyai.tech'
 
     return rp_id, rp_name, origin
 

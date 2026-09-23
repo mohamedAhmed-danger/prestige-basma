@@ -310,7 +310,7 @@
 {% endif %}
 <script>
 var WEBAUTHN_AUTH_OPTIONS = {{ webauthn_auth_options | safe if webauthn_auth_options else 'null' }};
-var SIGN_IN_EPOCH_MS = {{ sign_in_epoch_ms | default('null') }};
+var SIGN_IN_EPOCH_MS = {{ sign_in_epoch_ms if sign_in_epoch_ms else 'null' }};
 var REQUIRED_HOURS = {{ (required_hours or 0) }};
 
 function runWebAuthnThenSubmit(statusEl, buttonEl, credentialFieldId, formId) {
@@ -405,7 +405,7 @@ function formatDuration(ms) {
   var totalMinutes = Math.max(0, Math.floor(ms / 60000));
   var h = Math.floor(totalMinutes / 60);
   var m = totalMinutes % 60;
-  return h + 'h ' + m + 'm';
+  return h + 'س ' + m + 'د';
 }
 
 function openSignOutConfirm() {
@@ -413,25 +413,37 @@ function openSignOutConfirm() {
   if (!overlay) return;
   
   var now = new Date();
-  var elapsedMs = SIGN_IN_EPOCH_MS ? (now.getTime() - SIGN_IN_EPOCH_MS) : 0;
+  var elapsedMs = (typeof SIGN_IN_EPOCH_MS === 'number' && SIGN_IN_EPOCH_MS > 0) ? Math.max(0, now.getTime() - SIGN_IN_EPOCH_MS) : 0;
   var elapsedHours = elapsedMs / 3600000;
 
-  document.getElementById('confirm-out-time').textContent = formatClock(now);
-  document.getElementById('confirm-total').textContent = formatDuration(elapsedMs);
+  var outTimeEl = document.getElementById('confirm-out-time');
+  if (outTimeEl) outTimeEl.textContent = formatClock(now);
+
+  var totalEl = document.getElementById('confirm-total');
+  if (totalEl) totalEl.textContent = formatDuration(elapsedMs);
 
   var badge = document.getElementById('confirm-status-badge');
-  if (REQUIRED_HOURS && elapsedHours >= REQUIRED_HOURS) {
-    badge.innerHTML = '<span class="badge badge--ok">🟢 Full Shift</span>';
-  } else {
-    badge.innerHTML = '<span class="badge badge--warn">🟠 Short Shift</span>';
+  if (badge) {
+    var reqHours = (typeof REQUIRED_HOURS === 'number') ? REQUIRED_HOURS : 0;
+    if (reqHours > 0 && elapsedHours >= reqHours) {
+      badge.innerHTML = '<span class="badge badge--ok">🟢 شفت كامل</span>';
+    } else {
+      badge.innerHTML = '<span class="badge badge--warn">🟠 شفت قصير</span>';
+    }
   }
 
-  overlay.hidden = false;
+  overlay.style.display = 'flex';
+  overlay.classList.add('active');
+  overlay.removeAttribute('hidden');
 }
 
 function closeSignOutConfirm() {
   var overlay = document.getElementById('signout-confirm-overlay');
-  if (overlay) overlay.hidden = true;
+  if (overlay) {
+    overlay.style.display = 'none';
+    overlay.classList.remove('active');
+    overlay.setAttribute('hidden', 'true');
+  }
 }
 
 function confirmSignOut() {

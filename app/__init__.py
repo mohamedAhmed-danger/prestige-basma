@@ -9,18 +9,21 @@ from app.models import User
 CAIRO_TZ = ZoneInfo("Africa/Cairo")
 
 
-
-def create_app():
+def create_app(config_object=Config):
     app = Flask(__name__, instance_relative_config=True)
     os.makedirs(app.instance_path, exist_ok=True)
-    app.config.from_object(Config)
+    if isinstance(config_object, dict):
+        app.config.from_object(Config)
+        app.config.update(config_object)
+    elif config_object:
+        app.config.from_object(config_object)
 
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
     # models must be imported before migrate can see them
-    from app.models import  User,ShiftSetting,Attendance,Zone
+    from app.models import User, ShiftSetting, Attendance, Zone
 
     @login_manager.user_loader
     def load_user(user_id):
