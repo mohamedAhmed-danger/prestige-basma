@@ -8,7 +8,7 @@ services:
     container_name: prestige_basma_app
     restart: unless-stopped
     ports:
-      - "5000:5000"
+      - "8899:5000"
     environment:
       - SECRET_KEY=${SECRET_KEY:-prestige_basma_secret_key_2026}
       - WEBAUTHN_RP_ID=${WEBAUTHN_RP_ID:-localhost}

@@ -50,19 +50,26 @@ import os
 
 
 def _rp_config():
-    rp_id = current_app.config.get('WEBAUTHN_RP_ID', 'localhost')
-    rp_name = current_app.config.get('WEBAUTHN_RP_NAME', 'GeoAttend Pro')
-    origin = current_app.config.get('WEBAUTHN_ORIGIN', 'http://localhost:5000')
+    rp_id = current_app.config.get('WEBAUTHN_RP_ID') or os.getenv('WEBAUTHN_RP_ID')
+    rp_name = current_app.config.get('WEBAUTHN_RP_NAME', 'برستيج بصمة')
+    origin = current_app.config.get('WEBAUTHN_ORIGIN') or os.getenv('WEBAUTHN_ORIGIN')
 
-    # Dynamically match request origin, ensuring rp_id is never an IP address like 127.0.0.1
-    if request:
-        req_host = request.host.split(':')[0]
-        req_origin = request.host_url.rstrip('/')
-        if not os.getenv('WEBAUTHN_RP_ID'):
-            # WebAuthn spec requires a domain name (e.g., 'localhost') and forbids IP addresses
-            rp_id = 'localhost' if req_host in ('127.0.0.1', 'localhost') else req_host
-        if not os.getenv('WEBAUTHN_ORIGIN'):
-            origin = req_origin
+    if not rp_id or not origin:
+        if request:
+            # قراءة اسم الهوست الأصلي الممرر من Nginx
+            host_header = request.headers.get('X-Forwarded-Host', request.host)
+            req_host = host_header.split(':')[0]
+            
+            # قراءة البروتوكول الأصلي (http أم https)
+            scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+            
+            if not rp_id:
+                rp_id = 'localhost' if req_host in ('127.0.0.1', 'localhost') else req_host
+            if not origin:
+                origin = f"{scheme}://{host_header}"
+        else:
+            rp_id = rp_id or 'prestige-basma.revyai.tech'
+            origin = origin or 'https://prestige-basma.revyai.tech'
 
     return rp_id, rp_name, origin
 
